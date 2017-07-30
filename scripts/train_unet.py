@@ -23,15 +23,15 @@ def get_callbacks(dst_dir):
         TensorBoardCallBack(log_dir=dst_dir,
                             batch_freq=10),
 
-        EarlyStopping(monitor='val_acc', min_delta=0.001,
+        EarlyStopping(monitor='val_dice_coef_binary', min_delta=0.001,
                       patience=2, mode='max', verbose=1),
 
-        ReduceLROnPlateau(monitor='val_acc', factor=0.1,
+        ReduceLROnPlateau(monitor='val_dice_coef_binary', factor=0.1,
                           patience=1, verbose=1, mode='max',
                           epsilon=0.01),
 
-        ModelCheckpoint('.'.join((dst_dir, "weights.{epoch:02d}-{val_acc:.2f}.hdf5")),
-                        monitor='val_acc', mode='max', verbose=1)
+        ModelCheckpoint('.'.join((dst_dir, "weights.{epoch:02d}-{val_dice_coef_binary:.4f}.hdf5")),
+                        monitor='val_dice_coef_binary', mode='max', verbose=1)
     ]
 
 
