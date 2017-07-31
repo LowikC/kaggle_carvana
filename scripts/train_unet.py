@@ -23,12 +23,12 @@ def get_callbacks(dst_dir):
         TensorBoardCallBack(log_dir=dst_dir,
                             batch_freq=10),
 
-        EarlyStopping(monitor='val_dice_coef_binary', min_delta=0.001,
+        EarlyStopping(monitor='val_dice_coef_binary', min_delta=0.0001,
                       patience=2, mode='max', verbose=1),
 
         ReduceLROnPlateau(monitor='val_dice_coef_binary', factor=0.1,
                           patience=1, verbose=1, mode='max',
-                          epsilon=0.01),
+                          epsilon=0.005),
 
         ModelCheckpoint('.'.join((dst_dir, "weights.{epoch:02d}-{val_dice_coef_binary:.4f}.hdf5")),
                         monitor='val_dice_coef_binary', mode='max', verbose=1)
@@ -64,14 +64,13 @@ def train(args):
     weighted_acc = wrapped_partial(class_weighted_binary_accuracy,
                                    weights=weights)
 
-    # opt = SGD(lr=1e-3, momentum=0.9, decay=1e-6, nesterov=True)
     opt = Adam()
     unet.compile(optimizer=opt, loss=weighted_bce_loss,
                  metrics=[binary_accuracy, weighted_acc, dice_coef_binary])
 
     callbacks = get_callbacks(args.save_dir)
-    _ = unet.fit_generator(train_generator, 1, #train_generator.steps_per_epoch,
-                           epochs=2,
+    _ = unet.fit_generator(train_generator, train_generator.steps_per_epoch,
+                           epochs=100,
                            verbose=1,
                            validation_data=val_generator,
                            validation_steps=val_generator.steps_per_epoch,
@@ -83,6 +82,7 @@ def train(args):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
+    np.random.seed(42)
     parser = argparse.ArgumentParser(
         description='Train U-Net model')
     parser.add_argument('--save_dir',
