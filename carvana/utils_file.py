@@ -14,3 +14,11 @@ def iter_files_with_ext(root_dir, ext):
                 abs_path = os.path.abspath(os.path.join(path, name))
                 if os.path.isfile(abs_path):
                     yield os.path.join(path, name)
+
+
+def num_lines(filename):
+    """
+    Return the number of lines in a file.
+    """
+    with open(filename, "r") as f:
+        return sum(1 for _ in f)

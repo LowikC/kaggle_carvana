@@ -13,6 +13,7 @@ class FullImageIterator(Iterator):
                  batch_size=4,
                  target_shape=(160, 240),
                  crop_shape=None,
+                 data_augmentation=False,
                  shuffle=True,
                  seed=42,
                  debug_dir=None):
@@ -20,10 +21,11 @@ class FullImageIterator(Iterator):
         self.image_dir = image_dir
         self.mask_dir = mask_dir
         self.debug_dir = debug_dir
+        self.data_augmentation = data_augmentation
         self.n_indices = len(self.image_ids)
         self.target_shape = target_shape
         self.crop_shape = crop_shape if crop_shape else target_shape
-        self.steps_per_epoch = self.n_indices // batch_size
+        self.steps_per_epoch = int(np.ceil(self.n_indices / batch_size))
         if self.debug_dir:
             os.makedirs(self.debug_dir, exist_ok=True)
         super(FullImageIterator, self).__init__(self.n_indices, batch_size,
@@ -46,6 +48,8 @@ class FullImageIterator(Iterator):
         return neg, pos
 
     def random_transform(self, x, y):
+        if not self.data_augmentation:
+            return x, y
         return x, y
 
     def resize(self, img, interp):
@@ -90,12 +94,14 @@ class FullImageIterator(Iterator):
         for i, j in enumerate(index_array):
             image_id = self.image_ids[j]
             img_filename = os.path.join(self.image_dir, image_id + ".png")
-            mask_filename = os.path.join(self.mask_dir, image_id + "_mask.png")
             img = np.array(Image.open(img_filename))
-            mask = np.array(Image.open(mask_filename))
-
             img = self.resize(img, interp=cv2.INTER_LINEAR)
-            mask = self.resize(mask, interp=cv2.INTER_NEAREST)
+            if self.mask_dir:
+                mask_filename = os.path.join(self.mask_dir, image_id + "_mask.png")
+                mask = np.array(Image.open(mask_filename))
+                mask = self.resize(mask, interp=cv2.INTER_NEAREST)
+            else:
+                mask = np.zeros(img.shape[:2], dtype=np.uint8)
 
             img, mask = self.random_transform(img, mask)
 
