@@ -11,6 +11,9 @@ import rle
 from utils_file import iter_files_with_ext
 from FullImageIterator import FullImageIterator
 import constants
+import multiprocessing
+from functools import partial
+
 
 def get_model_uid(model_filename):
     model_uid = os.path.basename(model_filename)
@@ -67,6 +70,23 @@ def predict_test(args):
                     pbar.update(current_sample)
 
 
+def scale(mask):
+    mask_u8 = (mask * 255).astype(np.uint8)
+    mask_u8_full = cv2.resize(mask_u8, constants.default_shape[::-1],
+                              interpolation=cv2.INTER_CUBIC)
+    return (mask_u8_full > 127).astype(np.uint8)
+
+
+def scale_worker(fn, scaled_dir):
+    mask = np.load(fn)["mask"]
+    mask_full_resolution = scale(mask)
+    basename = os.path.basename(fn)
+    basename, _ = os.path.splitext(basename)
+    basename += ".png"
+    out_filename = os.path.join(scaled_dir, basename)
+    cv2.imwrite(out_filename, mask_full_resolution)
+
+
 def scale_test(args):
     raw_dir = get_tmp_raw(args)
     npz_files = list(iter_files_with_ext(raw_dir, ".npz"))
@@ -74,17 +94,10 @@ def scale_test(args):
 
     scaled_dir = get_tmp_scaled(args)
     os.makedirs(scaled_dir, exist_ok=True)
-    with progressbar.ProgressBar(0, len(npz_files)) as pbar:
-        for i, fn in enumerate(npz_files):
-            mask = np.load(fn)["mask"]
-            mask_full_resolution = resize(mask, constants.default_shape,
-                                          mode='constant', order=5)
-            mask_full_resolution = (mask_full_resolution > 0.5).astype(np.uint8)
-            basename = os.path.basename(fn)
-            basename, _ = os.path.splitext(basename)
-            basename += ".png"
-            out_filename = os.path.join(scaled_dir, basename)
-            cv2.imwrite(out_filename, mask_full_resolution)
+
+    scale_worker_spec = partial(scale_worker, scaled_dir=scaled_dir)
+    with progressbar.ProgressBar(0, len(npz_files)) as pbar, multiprocessing.Pool() as pool:
+        for i, _ in enumerate(pool.imap_unordered(scale_worker_spec, npz_files)):
             pbar.update(i + 1)
 
 
@@ -117,9 +130,11 @@ def make_submission(args):
     model_uid = get_model_uid(args.model)
     logging.info("Model uid: {}".format(model_uid))
 
-    if not args.use_tmp:
-        logging.info("Don't use tmp directory, predict masks from model.")
+    if not args.use_tmp_scaled and not args.use_tmp_raw:
+        logging.info("Don't use tmp raw directory, predict masks from model.")
         predict_test(args)
+    if not args.use_tmp_scaled:
+        logging.info("Don't use tmp scaled directory: {}")
         scale_test(args)
     else:
         logging.info("Use tmp directory: {}".format(get_tmp_scaled(args)))
@@ -133,7 +148,10 @@ if __name__ == "__main__":
     parser.add_argument('--tmp_dir',
                         type=str, default="../data/tmp",
                         help='Temp directory to save the predicted masks.')
-    parser.add_argument('--use_tmp',
+    parser.add_argument('--use_tmp_raw',
+                        action='store_true',
+                        help="Don't predict, use directly the predictions in the tmp directory.")
+    parser.add_argument('--use_tmp_scaled',
                         action='store_true',
                         help="Don't predict, use directly the predictions in the tmp directory.")
     parser.add_argument('--model',
