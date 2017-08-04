@@ -8,7 +8,7 @@ from unet import get_model
 from keras.optimizers import Adam
 from keras.metrics import binary_accuracy
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
-from metrics import dice_coef_binary
+from metrics import dice_coef_binary_contours
 from losses import contours_weighted_binary_crossentropy, wrapped_partial
 from TensorBoardCallBack import TensorBoardCallBack
 
@@ -63,7 +63,7 @@ def train(args):
 
     opt = Adam()
     unet.compile(optimizer=opt, loss=weighted_bce_loss,
-                 metrics=[binary_accuracy, dice_coef_binary])
+                 metrics=[binary_accuracy, dice_coef_binary_contours])
 
     callbacks = get_callbacks(args.save_dir)
     _ = unet.fit_generator(train_generator, train_generator.steps_per_epoch,
