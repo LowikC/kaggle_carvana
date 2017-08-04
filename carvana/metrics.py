@@ -14,7 +14,7 @@ def dice_coef_binary(y_true, y_pred):
     return dice_coef(y_true, y_pred_binary, K.epsilon())
 
 
-def class_weighted_binary_accuracy(y_true, y_pred, weights):
+def background_weighted_binary_accuracy(y_true, y_pred, weights):
     weight_per_pixel = y_true * weights[1] + (1 - y_true) * weights[0]
     accuracy_per_pixel = K.equal(y_true, K.round(y_pred))
     accuracy_per_pixel = K.cast(accuracy_per_pixel, K.floatx())

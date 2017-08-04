@@ -8,8 +8,8 @@ from unet import get_model
 from keras.optimizers import SGD, Adam
 from keras.metrics import binary_accuracy
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
-from metrics import dice_coef_binary, class_weighted_binary_accuracy
-from losses import class_weighted_binary_crossentropy, wrapped_partial
+from metrics import dice_coef_binary, background_weighted_binary_accuracy
+from losses import background_weighted_binary_crossentropy, wrapped_partial
 from TensorBoardCallBack import TensorBoardCallBack
 
 
@@ -57,11 +57,11 @@ def train(args):
     unet = get_model(args.image_shape[0], args.image_shape[1], 3,
                      n_filters=[16, 32, 64, 128, 256])
 
-    weights = np.array([1, 3.75], dtype=np.float32)
+    weights = np.array([1, 3.75], dtype=np.float32)  # 80% of background
     weights /= np.sum(weights)
-    weighted_bce_loss = wrapped_partial(class_weighted_binary_crossentropy,
+    weighted_bce_loss = wrapped_partial(background_weighted_binary_crossentropy,
                                         weights=weights)
-    weighted_acc = wrapped_partial(class_weighted_binary_accuracy,
+    weighted_acc = wrapped_partial(background_weighted_binary_accuracy,
                                    weights=weights)
 
     opt = Adam()
@@ -86,25 +86,25 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Train U-Net model')
     parser.add_argument('--save_dir',
-                        type=str, default="../data/logs",
+                        type=str, default="data/logs_960x640",
                         help='Directory to save checkpoints, logs, ....')
     parser.add_argument('--train',
-                        type=str, default="../data/train.json",
+                        type=str, default="data/train.json",
                         help='Json file with the training images ids')
     parser.add_argument('--val',
-                        type=str, default="../data/val.json",
+                        type=str, default="data/val.json",
                         help='Json file with the validation images ids')
     parser.add_argument('--images_dir',
-                        type=str, default="../data/train_240x160",
+                        type=str, default="data/train_960x640",
                         help='Path to the directory containing images.')
     parser.add_argument('--mask_dir',
-                        type=str, default="../data/train_masks_240x160",
+                        type=str, default="data/train_masks_960x640",
                         help='Path to the directory containing masks.')
     parser.add_argument('--batch_size',
-                        type=int, default=16,
+                        type=int, default=4,
                         help='Batch size.')
     parser.add_argument('--image_shape',
-                        type=tuple, default=(160, 240),
+                        type=tuple, default=(640, 960),
                         help='(Height, width) of the samples.'
                              'Should match the shape of the images'
                              ' (will be resized otherwise).')
