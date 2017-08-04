@@ -62,7 +62,7 @@ def train(args):
     weighted_bce_loss = wrapped_partial(background_weighted_binary_crossentropy,
                                         weights=weights)
 
-    opt = Adam()
+    opt = SGD(lr=1e-4, momentum=0.9, nesterov=True)
     unet.compile(optimizer=opt, loss=weighted_bce_loss,
                  metrics=[binary_accuracy, dice_coef_binary])
 
