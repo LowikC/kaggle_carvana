@@ -16,7 +16,7 @@ def resize_worker(src_filename, dst_dir, target_size, is_boolean=False):
         if is_boolean:
             img = Image.fromarray(np.array(img) * 255)
             img_resized = img.resize(target_size, resample=Image.BILINEAR)
-            img_resized = img_resized > 127
+            img_resized = Image.fromarray( (np.array(img_resized) > 127).astype(np.uint8))
         else:
             img = np.array(img)
             img_resized = cv2.resize(img, target_size, interpolation=cv2.INTER_AREA)
@@ -62,7 +62,10 @@ if __name__ == "__main__":
     parser.add_argument('--target_height',
                         type=int, default=160,
                         help="Target height")
+    parser.add_argument('--is_boolean',
+                        action="store_true",
+                        help="Boolean image in input")
     args = parser.parse_args()
 
     resize_all(args.src_dir, args.src_ext, args.dst_dir,
-               (args.target_width, args.target_height))
+               (args.target_width, args.target_height), args.is_boolean)

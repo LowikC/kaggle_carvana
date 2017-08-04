@@ -5,10 +5,10 @@ import logging
 import numpy as np
 from FullImageIterator import FullImageIterator
 from unet import get_model
-from keras.optimizers import SGD, Adam
+from keras.optimizers import Adam
 from keras.metrics import binary_accuracy
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
-from metrics import dice_coef_binary, background_weighted_binary_accuracy
+from metrics import dice_coef_binary
 from losses import background_weighted_binary_crossentropy, wrapped_partial
 from TensorBoardCallBack import TensorBoardCallBack
 
@@ -61,12 +61,10 @@ def train(args):
     weights /= np.sum(weights)
     weighted_bce_loss = wrapped_partial(background_weighted_binary_crossentropy,
                                         weights=weights)
-    weighted_acc = wrapped_partial(background_weighted_binary_accuracy,
-                                   weights=weights)
 
     opt = Adam()
     unet.compile(optimizer=opt, loss=weighted_bce_loss,
-                 metrics=[binary_accuracy, weighted_acc, dice_coef_binary])
+                 metrics=[binary_accuracy, dice_coef_binary])
 
     callbacks = get_callbacks(args.save_dir)
     _ = unet.fit_generator(train_generator, train_generator.steps_per_epoch,
