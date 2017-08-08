@@ -42,19 +42,20 @@ def get_data(args):
     with open(args.val, "r") as jfile:
         val_ids = json.load(jfile)
 
-    train_generator = FullImageIterator(args.images_dir, args.mask_dir,
+    image_shape = (args.image_height, args.image_width)
+    train_generator = FullImageIterator(args.images_dir, args.masks_dir,
                                         train_ids, args.batch_size,
-                                        args.image_shape)
-    val_generator = FullImageIterator(args.images_dir, args.mask_dir,
+                                        image_shape)
+    val_generator = FullImageIterator(args.images_dir, args.masks_dir,
                                       val_ids, args.batch_size,
-                                      args.image_shape)
+                                      image_shape)
     return train_generator, val_generator
 
 
 def train(args):
     train_generator, val_generator = get_data(args)
 
-    unet = get_model(args.image_shape[0], args.image_shape[1], 3,
+    unet = get_model(args.image_height, args.image_width, 3,
                      n_filters=[16, 32, 64, 128, 256])
 
     weights = np.array([1, 3.75], dtype=np.float32)  # 80% of background
@@ -62,7 +63,7 @@ def train(args):
     weighted_bce_loss = wrapped_partial(background_weighted_binary_crossentropy,
                                         weights=weights)
 
-    opt = SGD(lr=1e-4, momentum=0.9, nesterov=True)
+    opt = Adam()
     unet.compile(optimizer=opt, loss=weighted_bce_loss,
                  metrics=[binary_accuracy, dice_coef_binary])
 
@@ -95,15 +96,20 @@ if __name__ == "__main__":
     parser.add_argument('--images_dir',
                         type=str, default="data/train_960x640",
                         help='Path to the directory containing images.')
-    parser.add_argument('--mask_dir',
+    parser.add_argument('--masks_dir',
                         type=str, default="data/train_masks_960x640",
                         help='Path to the directory containing masks.')
     parser.add_argument('--batch_size',
                         type=int, default=4,
                         help='Batch size.')
-    parser.add_argument('--image_shape',
-                        type=tuple, default=(640, 960),
-                        help='(Height, width) of the samples.'
+    parser.add_argument('--image_width',
+                        type=int, default=960,
+                        help='Width of the samples.'
+                             'Should match the shape of the images'
+                             ' (will be resized otherwise).')
+    parser.add_argument('--image_height',
+                        type=int, default=640,
+                        help='Height of the samples.'
                              'Should match the shape of the images'
                              ' (will be resized otherwise).')
     args = parser.parse_args()
