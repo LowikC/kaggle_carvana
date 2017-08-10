@@ -8,7 +8,6 @@ import numpy as np
 from keras.models import load_model
 import rle
 from FullImageWithContoursIterator import FullImageWithContoursIterator
-import constants
 
 
 def get_model_uid(model_filename):
@@ -75,9 +74,9 @@ def predict_test(args):
 
 def scale(mask):
     mask_u8 = (mask * 255).astype(np.uint8)
-    mask_u8_full = cv2.resize(mask_u8, constants.default_shape[::-1],
+    mask_u8_full = cv2.resize(mask_u8, (1920, 1280),
                               interpolation=cv2.INTER_CUBIC)
-    return (mask_u8_full > 127).astype(np.uint8)
+    return (mask_u8_full[:, 1:1919] > 127).astype(np.uint8)
 
 
 def make_submission(args):
@@ -104,7 +103,7 @@ if __name__ == "__main__":
                         help="Path to the json file with the test ids.")
     parser.add_argument('--batch_size',
                         type=int, default=4,
-                        help="Path to the json file with the test ids.")
+                        help="Number of samples processed in one batch.")
     args = parser.parse_args()
 
     make_submission(args)
