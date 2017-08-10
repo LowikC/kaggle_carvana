@@ -9,6 +9,7 @@ from keras.models import load_model
 import rle
 from unet import preprocess
 from FullImageWithContoursIterator import FullImageWithContoursIterator
+from PIL import Image
 
 
 def get_model_uid(model_filename):
@@ -74,6 +75,25 @@ def predict_test(args):
                     pbar.update(current_sample)
 
 
+def load_test(args):
+    src_dir = args.src_dir
+    csv_filename = get_submission_filename(args)
+
+    with open(args.test, "r") as jfile:
+        test_ids = json.load(jfile)
+
+    with progressbar.ProgressBar(0, len(test_ids)) as pbar, \
+            open(csv_filename, "w") as csv_file:
+        for i, test_id in enumerate(test_ids):
+            mask_filename = os.path.join(src_dir, test_id + ".png")
+            mask = np.array(Image.open(mask_filename))
+            # Write in csv file
+            csv_file.write(test_id + ".jpg" + ",")
+            csv_file.write(rle.dumps(mask))
+            csv_file.write("\n")
+            pbar.update(i + 1)
+
+
 def scale(mask):
     mask_u8 = (mask * 255).astype(np.uint8)
     mask_u8_full = cv2.resize(mask_u8, (1920, 1280),
@@ -82,9 +102,13 @@ def scale(mask):
 
 
 def make_submission(args):
-    model_uid = get_model_uid(args.model)
-    logging.info("Model uid: {}".format(model_uid))
-    predict_test(args)
+    if os.path.isdir(args.src_dir):
+        logging.info("Use existing predicted masks.")
+        load_test(args)
+    else:
+        model_uid = get_model_uid(args.model)
+        logging.info("Model uid: {}".format(model_uid))
+        predict_test(args)
 
 
 if __name__ == "__main__":
@@ -94,6 +118,9 @@ if __name__ == "__main__":
     parser.add_argument('--tmp_dir',
                         type=str, default="../data/tmp",
                         help='Temp directory to save the predicted masks.')
+    parser.add_argument('--src_dir',
+                        type=str, default="",
+                        help='Directory to load predicted masks')
     parser.add_argument('--model',
                         type=str,
                         help="Path to the model checkpoint.")
