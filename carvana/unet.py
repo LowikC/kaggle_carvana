@@ -65,3 +65,7 @@ def get_model(im_height, im_width, n_channels=3,
     model = Model(inputs=[inputs], outputs=[segmentation], name="unet")
 
     return model
+
+
+def preprocess(x):
+    return (x - 127) / 255

@@ -4,13 +4,14 @@ import argparse
 import logging
 import numpy as np
 from FullImageWithContoursIterator import FullImageWithContoursIterator
-from unet import get_model
+from unet import get_model, preprocess
 from keras.optimizers import Adam
 from keras.metrics import binary_accuracy
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from metrics import dice_coef_binary_contours
 from losses import contours_weighted_binary_crossentropy, wrapped_partial
 from TensorBoardCallBack import TensorBoardCallBack
+from contours import get_contours_batch
 
 
 def get_callbacks(dst_dir):
@@ -45,10 +46,14 @@ def get_data(args):
     image_shape = (args.image_height, args.image_width)
     train_generator = FullImageWithContoursIterator(args.images_dir, args.masks_dir,
                                                     train_ids, args.batch_size,
-                                                    image_shape)
+                                                    image_shape,
+                                                    xpreprocess=preprocess,
+                                                    ypreprocess=get_contours_batch)
     val_generator = FullImageWithContoursIterator(args.images_dir, args.masks_dir,
                                                   val_ids, args.batch_size,
-                                                  image_shape)
+                                                  image_shape,
+                                                  xpreprocess=preprocess,
+                                                  ypreprocess=get_contours_batch)
     return train_generator, val_generator
 
 

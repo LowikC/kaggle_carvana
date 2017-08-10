@@ -7,6 +7,7 @@ import progressbar
 import numpy as np
 from keras.models import load_model
 import rle
+from unet import preprocess
 from FullImageWithContoursIterator import FullImageWithContoursIterator
 
 
@@ -46,7 +47,8 @@ def predict_test(args):
                                                   test_ids,
                                                   batch_size=args.batch_size,
                                                   target_shape=input_shape,
-                                                  shuffle=False)
+                                                  shuffle=False,
+                                                  xpreprocess=preprocess)
 
     current_sample = 0
     with progressbar.ProgressBar(0, len(test_ids)) as pbar, \

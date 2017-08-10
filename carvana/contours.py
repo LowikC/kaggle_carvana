@@ -29,3 +29,18 @@ def get_contours(mask):
     img_contours[img_outside_contours] = class_ids["background_contour"]
 
     return img_contours
+
+
+def get_contours_batch(y_batch):
+    """
+    Get contours for every image in the batch
+    :param y_batch: Np.array (B, H, W, 1)
+    :return: np.array of size (B, H, W, 1)
+    """
+    contours_batch = np.zeros_like(y_batch, dtype=np.uint8)
+    batch_size = y_batch.shape[0]
+    for b in range(batch_size):
+        mask = y_batch[b, :, :, 0]
+        img_contours = get_contours(mask)
+        contours_batch[b, :, :, 0] = img_contours
+    return contours_batch

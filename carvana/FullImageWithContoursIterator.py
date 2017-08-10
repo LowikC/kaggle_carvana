@@ -3,7 +3,6 @@ import numpy as np
 import cv2
 from PIL import Image
 import progressbar
-from contours import get_contours
 from keras.preprocessing.image import Iterator
 
 
@@ -15,7 +14,9 @@ class FullImageWithContoursIterator(Iterator):
                  batch_size=4,
                  target_shape=(160, 240),
                  crop_shape=None,
-                 data_augmentation=False,
+                 data_augmentation=None,
+                 xpreprocess=None,
+                 ypreprocess=None,
                  shuffle=True,
                  seed=42,
                  debug_dir=None):
@@ -23,7 +24,19 @@ class FullImageWithContoursIterator(Iterator):
         self.image_dir = image_dir
         self.mask_dir = mask_dir
         self.debug_dir = debug_dir
-        self.data_augmentation = data_augmentation
+        if data_augmentation is None:
+            self.data_augmentation = lambda x: x
+        else:
+            self.data_augmentation = data_augmentation
+        if xpreprocess is None:
+            self.xpreprocess = lambda x: x
+        else:
+            self.xpreprocess = xpreprocess
+
+        if ypreprocess is None:
+            self.ypreprocess = lambda x: x
+        else:
+            self.ypreprocess = ypreprocess
         self.n_indices = len(self.image_ids)
         self.target_shape = target_shape
         self.crop_shape = crop_shape if crop_shape else target_shape
@@ -33,12 +46,6 @@ class FullImageWithContoursIterator(Iterator):
         super(FullImageWithContoursIterator, self).__init__(self.n_indices,
                                                             batch_size,
                                                             shuffle, seed)
-
-    def normalize_x(self, x):
-        x[..., 0] -= 127
-        x[..., 1] -= 127
-        x[..., 2] -= 127
-        return x/255
 
     def distribution(self):
         class_counts = np.zeros((4,), dtype=np.int64)
@@ -104,21 +111,16 @@ class FullImageWithContoursIterator(Iterator):
             else:
                 mask = np.zeros(img.shape[:2], dtype=np.uint8)
 
-            img, mask = self.random_transform(img, mask)
-            mask_contours = get_contours(mask)
+            mask = mask.reshape(mask.shape + (1, ))
+            img, mask = self.data_augmentation(img, mask)
 
             batch_x[i, ...] = img
-            batch_y[i, :, :, 0] = mask_contours
+            batch_y[i, ...] = mask
 
         if self.debug_dir:
             for i in range(batch_x.shape[0]):
                 img_fn = os.path.join(self.debug_dir, "{:02d}_img.png".format(i))
                 mask_fn = os.path.join(self.debug_dir, "{:02d}_mask.png".format(i))
                 cv2.imwrite(img_fn, batch_x[i, ...])
-                mask_bgr = np.zeros_like(batch_x[i, ...])
-                mask_bgr[batch_y[i, :, :, 0] == 1, 2] = 255
-                mask_bgr[batch_y[i, :, :, 0] == 3, 1] = 255
-                mask_bgr[batch_y[i, :, :, 0] == 2, :] = 255
-                cv2.imwrite(mask_fn, mask_bgr)
-
-        return self.normalize_x(batch_x), batch_y
+                cv2.imwrite(mask_fn, batch_y[i, ...])
+        return self.xpreprocess(batch_x), self.ypreprocess(batch_y)
