@@ -8,18 +8,22 @@ import progressbar
 import numpy as np
 import cv2
 from utils_file import iter_files_with_ext
+import constants
 
 
 def resize_worker(src_filename, dst_dir, target_size, is_boolean=False):
     try:
         img = Image.open(src_filename)
         if is_boolean:
-            img = Image.fromarray(np.array(img) * 255)
-            img_resized = img.resize(target_size, resample=Image.BILINEAR)
-            img_resized = Image.fromarray( (np.array(img_resized) > 127).astype(np.uint8))
+            img_1920x1280 = np.zeros((1280, 1920), dtype=np.uint8)
+            img_1920x1280[:, 1:1919] = np.array(img) * 255
+            img_1920x1280 = Image.fromarray(img_1920x1280)
+            img_resized = img_1920x1280.resize(target_size, resample=Image.BILINEAR)
+            img_resized = Image.fromarray((np.array(img_resized) > 127).astype(np.uint8))
         else:
-            img = np.array(img)
-            img_resized = cv2.resize(img, target_size, interpolation=cv2.INTER_AREA)
+            img_1920x1280 = np.zeros((1280, 1920, 3), dtype=np.uint8)
+            img_1920x1280[:, 1:1919, :] = np.array(img)
+            img_resized = cv2.resize(img_1920x1280, target_size, interpolation=cv2.INTER_AREA)
             img_resized = Image.fromarray(img_resized)
 
         src_basename = os.path.basename(src_filename)
