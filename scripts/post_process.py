@@ -53,4 +53,4 @@ if __name__ == "__main__":
                         help='Directory to save the postprocessed masks.')
     args = parser.parse_args()
 
-    post_process_all(args.src_dir, args.src_ext, args.dst_dir, args.dry)
+    post_process_all(args.src_dir, args.src_ext, args.dst_dir)
