@@ -98,8 +98,11 @@ def load_test(args):
 
 def scale(mask):
     mask_u8 = (mask * 255).astype(np.uint8)
-    mask_u8_full = cv2.resize(mask_u8, (1920, 1280),
-                              interpolation=cv2.INTER_CUBIC)
+    if mask_u8.shape != (1280, 1920):
+        mask_u8_full = cv2.resize(mask_u8, (1920, 1280),
+                                  interpolation=cv2.INTER_CUBIC)
+    else:
+        mask_u8_full = mask_u8
     return (mask_u8_full[:, 1:1919] > 127).astype(np.uint8)
 
 
