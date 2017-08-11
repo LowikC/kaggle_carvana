@@ -8,7 +8,7 @@ import numpy as np
 from keras.models import load_model
 import rle
 from unet import preprocess
-from FullImageWithContoursIterator import FullImageWithContoursIterator
+from ImageMaskIterator import FullImageWithContoursIterator
 from PIL import Image
 
 
@@ -84,6 +84,8 @@ def load_test(args):
 
     with progressbar.ProgressBar(0, len(test_ids)) as pbar, \
             open(csv_filename, "w") as csv_file:
+        csv_file.write("img,rle_mask\n")
+
         for i, test_id in enumerate(test_ids):
             mask_filename = os.path.join(src_dir, test_id + ".png")
             mask = np.array(Image.open(mask_filename))

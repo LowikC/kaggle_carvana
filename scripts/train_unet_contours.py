@@ -3,7 +3,7 @@ import json
 import argparse
 import logging
 import numpy as np
-from FullImageWithContoursIterator import FullImageWithContoursIterator
+from ImageMaskIterator import ImageMaskIterator
 from unet import get_model, preprocess
 from keras.optimizers import Adam
 from keras.metrics import binary_accuracy
@@ -20,19 +20,23 @@ def get_callbacks(dst_dir):
     :param dst_dir: Output path for callbacks which need to store files on disk
     :return: A list of keras.callbacks
     """
+    # monitor = 'val_dice_coef_binary_contours'
+    monitor = 'val_loss'
+    ckpt_name = "weights.{epoch:02d}-{val_dice_coef_binary_contours:.4f}-{" + monitor + "}.hdf5"
+
     return [
         TensorBoardCallBack(log_dir=dst_dir,
                             batch_freq=10),
 
-        EarlyStopping(monitor='val_dice_coef_binary_contours', min_delta=0.0001,
-                      patience=2, mode='max', verbose=1),
+        EarlyStopping(monitor=monitor, min_delta=0.0001,
+                      patience=2, mode='min', verbose=1),
 
-        ReduceLROnPlateau(monitor='val_dice_coef_binary_contours', factor=0.1,
-                          patience=1, verbose=1, mode='max',
+        ReduceLROnPlateau(monitor=monitor, factor=0.1,
+                          patience=1, verbose=1, mode='min',
                           epsilon=0.005),
 
-        ModelCheckpoint('.'.join((dst_dir, "weights.{epoch:02d}-{val_dice_coef_binary_contours:.4f}.hdf5")),
-                        monitor='val_dice_coef_binary_contours', mode='max', verbose=1)
+        ModelCheckpoint('.'.join((dst_dir, ckpt_name)),
+                        monitor=monitor, mode='min', verbose=1)
     ]
 
 
@@ -44,16 +48,16 @@ def get_data(args):
         val_ids = json.load(jfile)
 
     image_shape = (args.image_height, args.image_width)
-    train_generator = FullImageWithContoursIterator(args.images_dir, args.masks_dir,
-                                                    train_ids, args.batch_size,
-                                                    image_shape,
-                                                    xpreprocess=preprocess,
-                                                    ypreprocess=get_contours_batch)
-    val_generator = FullImageWithContoursIterator(args.images_dir, args.masks_dir,
-                                                  val_ids, args.batch_size,
-                                                  image_shape,
-                                                  xpreprocess=preprocess,
-                                                  ypreprocess=get_contours_batch)
+    train_generator = ImageMaskIterator(args.images_dir, args.masks_dir,
+                                        train_ids, args.batch_size,
+                                        image_shape,
+                                        xpreprocess=preprocess,
+                                        ypreprocess=get_contours_batch)
+    val_generator = ImageMaskIterator(args.images_dir, args.masks_dir,
+                                      val_ids, args.batch_size,
+                                      image_shape,
+                                      xpreprocess=preprocess,
+                                      ypreprocess=get_contours_batch)
     return train_generator, val_generator
 
 
@@ -78,8 +82,8 @@ def train(args):
                            validation_data=val_generator,
                            validation_steps=val_generator.steps_per_epoch,
                            callbacks=callbacks,
-                           max_queue_size=1,
-                           workers=1,
+                           max_queue_size=8,
+                           workers=4,
                            initial_epoch=0)
 
 

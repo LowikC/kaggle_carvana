@@ -6,7 +6,7 @@ import progressbar
 from keras.preprocessing.image import Iterator
 
 
-class FullImageWithContoursIterator(Iterator):
+class ImageMaskIterator(Iterator):
     def __init__(self,
                  image_dir,
                  mask_dir,
@@ -25,7 +25,7 @@ class FullImageWithContoursIterator(Iterator):
         self.mask_dir = mask_dir
         self.debug_dir = debug_dir
         if data_augmentation is None:
-            self.data_augmentation = lambda x: x
+            self.data_augmentation = lambda x, y: (x, y)
         else:
             self.data_augmentation = data_augmentation
         if xpreprocess is None:
@@ -43,7 +43,7 @@ class FullImageWithContoursIterator(Iterator):
         self.steps_per_epoch = int(np.ceil(self.n_indices / batch_size))
         if self.debug_dir:
             os.makedirs(self.debug_dir, exist_ok=True)
-        super(FullImageWithContoursIterator, self).__init__(self.n_indices,
+        super(ImageMaskIterator, self).__init__(self.n_indices,
                                                             batch_size,
                                                             shuffle, seed)
 
