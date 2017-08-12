@@ -8,7 +8,7 @@ import numpy as np
 from keras.models import load_model
 import rle
 from unet import preprocess
-from ImageMaskIterator import FullImageWithContoursIterator
+from ImageMaskIterator import ImageMaskIterator
 from PIL import Image
 
 
@@ -44,12 +44,12 @@ def predict_test(args):
     with open(args.test, "r") as jfile:
         test_ids = json.load(jfile)
     logging.info("Apply prediction model on {} images".format(len(test_ids)))
-    test_iterator = FullImageWithContoursIterator(args.images_dir, None,
-                                                  test_ids,
-                                                  batch_size=args.batch_size,
-                                                  target_shape=input_shape,
-                                                  shuffle=False,
-                                                  xpreprocess=preprocess)
+    test_iterator = ImageMaskIterator(args.images_dir, None,
+                                      test_ids,
+                                      batch_size=args.batch_size,
+                                      target_shape=input_shape,
+                                      shuffle=False,
+                                      xpreprocess=preprocess)
 
     current_sample = 0
     with progressbar.ProgressBar(0, len(test_ids)) as pbar, \
