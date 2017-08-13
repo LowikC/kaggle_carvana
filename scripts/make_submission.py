@@ -10,6 +10,7 @@ import rle
 from unet import preprocess
 from ImageMaskIterator import ImageMaskIterator
 from PIL import Image
+from multiprocessing import Process, Queue
 
 
 def get_model_uid(model_filename):
@@ -28,6 +29,32 @@ def get_submission_filename(args):
     model_uid = get_model_uid(args.model)
     tmp_dir = args.tmp_dir
     return os.path.join(tmp_dir, model_uid, "submission.csv")
+
+
+def predict_csv_writer(queue_batches, test_ids, csv_filename, scaled_dir):
+    current_sample = 0
+    with progressbar.ProgressBar(0, len(test_ids)) as pbar, \
+            open(csv_filename, "w") as csv_file:
+        csv_file.write("img,rle_mask\n")
+
+        while True:
+            bmasks = queue_batches.get()
+            if isinstance(bmasks, str) and bmasks == 'DONE':
+                break
+            for i in range(bmasks.shape[0]):
+                if current_sample < len(test_ids):
+                    mask_full_res = scale(bmasks[i, ...])
+                    basename = test_ids[current_sample]
+                    # Save predicted mask
+                    output_filename = os.path.join(scaled_dir, basename + ".png")
+                    cv2.imwrite(output_filename, mask_full_res)
+                    # Write in csv file
+                    csv_file.write(basename + ".jpg" + ",")
+                    csv_file.write(rle.dumps(mask_full_res))
+                    csv_file.write("\n")
+                    current_sample += 1
+                    pbar.update(current_sample)
+    logging.info("Writing in csv done for {} samples.".format(current_sample))
 
 
 def predict_test(args):
@@ -51,28 +78,20 @@ def predict_test(args):
                                       shuffle=False,
                                       xpreprocess=preprocess)
 
-    current_sample = 0
-    with progressbar.ProgressBar(0, len(test_ids)) as pbar, \
-            open(csv_filename, "w") as csv_file:
-        csv_file.write("img,rle_mask\n")
+    queue_batches = Queue()
+    writer_p = Process(target=predict_csv_writer,
+                       args=(queue_batches, test_ids, csv_filename, scaled_dir))
+    writer_p.daemon = True
+    writer_p.start()
 
-        for batch_idx in range(test_iterator.steps_per_epoch):
-            bx, _ = next(test_iterator)
-            bmasks = model.predict_on_batch(bx)
+    for batch_idx in range(test_iterator.steps_per_epoch):
+        bx, _ = next(test_iterator)
+        bmasks = model.predict_on_batch(bx)
+        queue_batches.put(bmasks)
 
-            for i in range(bmasks.shape[0]):
-                if current_sample < len(test_ids):
-                    mask_full_res = scale(bmasks[i, ...])
-                    basename = test_ids[current_sample]
-                    # Save predicted mask
-                    output_filename = os.path.join(scaled_dir, basename + ".png")
-                    cv2.imwrite(output_filename, mask_full_res)
-                    # Write in csv file
-                    csv_file.write(basename + ".jpg" + ",")
-                    csv_file.write(rle.dumps(mask_full_res))
-                    csv_file.write("\n")
-                    current_sample += 1
-                    pbar.update(current_sample)
+    logging.info("Prediction done.")
+    queue_batches.put("DONE")
+    writer_p.join()
 
 
 def load_test(args):
