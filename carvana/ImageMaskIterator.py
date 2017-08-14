@@ -9,38 +9,38 @@ from keras.preprocessing.image import Iterator
 
 class ImageMaskIterator(Iterator):
     def __init__(self,
-                 image_dir,
-                 image_ids,
-                 mask_dir="",
-                 image_ext=".png",
-                 mask_ext=".png",
+                 images_dir,
+                 images_ids,
+                 masks_dir="",
+                 images_ext=".png",
+                 masks_ext=".png",
                  batch_size=4,
-                 target_shape=(160, 240),
-                 crop_shape=None,
+                 x_shape=(160, 240),
+                 y_shape=None,
                  n_patches_per_image=1,
                  data_augmentation=None,
-                 xpreprocess=None,
-                 ypreprocess=None,
+                 x_preprocess=None,
+                 y_preprocess=None,
                  shuffle=True,
                  seed=42,
                  debug_dir=None):
         """
         Iterator on images and masks samples in a given directory.
-        :param image_dir: Directory containing the images.
-        :param image_ids: Ids of the images to use.
-        :param mask_dir: Directory containing the masks. Can be empty.
-        :param image_ext: Extension of the image files (default: .png)
-        :param mask_ext: Extension of the mask files (default: .png)
+        :param images_dir: Directory containing the images.
+        :param images_ids: Ids of the images to use.
+        :param masks_dir: Directory containing the masks. Can be empty.
+        :param images_ext: Extension of the image files (default: .png)
+        :param masks_ext: Extension of the mask files (default: .png)
         :param batch_size: Number of samples per batch.
-        :param target_shape: Size of the X samples.
-        :param crop_shape: Size of the Y samples.
+        :param x_shape: Size of the X samples.
+        :param y_shape: Size of the Y samples.
         :param n_patches_per_images: Number of patches sampled on one image.
             batch_size must be divisible by n_patches_per_images.
         :param data_augmentation: Function for data augmentation
             (img, mask) -> (augmented img, augmented mask).
-        :param xpreprocess: Function applied to preprocess the X samples
+        :param x_preprocess: Function applied to preprocess the X samples
             (batch img) -> (preprocessed batch img)
-        :param ypreprocess: Function applied to preprocess the Y samples
+        :param y_preprocess: Function applied to preprocess the Y samples
             (batch mask) -> (preprocessed batch mask)
         :param shuffle: Shuffle the images.
             Otherwise, samples are returned in the same order than images_ids
@@ -48,29 +48,29 @@ class ImageMaskIterator(Iterator):
         :param debug_dir: If the directory exist,
             save X and Y samples before preprocessing.
         """
-        self.image_ids = image_ids
+        self.image_ids = images_ids
         self.n_patches_per_image = n_patches_per_image
-        self.image_dir = image_dir
-        self.image_ext = image_ext
-        self.mask_ext = mask_ext
-        self.mask_dir = mask_dir
+        self.image_dir = images_dir
+        self.image_ext = images_ext
+        self.mask_ext = masks_ext
+        self.mask_dir = masks_dir
         self.debug_dir = debug_dir
         if data_augmentation is None:
             self.data_augmentation = lambda x, y: (x, y)
         else:
             self.data_augmentation = data_augmentation
-        if xpreprocess is None:
+        if x_preprocess is None:
             self.xpreprocess = lambda x: x
         else:
-            self.xpreprocess = xpreprocess
+            self.xpreprocess = x_preprocess
 
-        if ypreprocess is None:
+        if y_preprocess is None:
             self.ypreprocess = lambda x: x
         else:
-            self.ypreprocess = ypreprocess
+            self.ypreprocess = y_preprocess
         self.n_indices = len(self.image_ids) * self.n_patches_per_image
-        self.target_shape = target_shape
-        self.crop_shape = crop_shape if crop_shape else target_shape
+        self.target_shape = x_shape
+        self.crop_shape = y_shape if y_shape else x_shape
         self.steps_per_epoch = int(np.ceil(self.n_indices / batch_size))
         if self.debug_dir:
             os.makedirs(self.debug_dir, exist_ok=True)

@@ -51,13 +51,13 @@ def get_data(args):
     train_generator = ImageMaskIterator(args.images_dir, args.masks_dir,
                                         train_ids, args.batch_size,
                                         image_shape,
-                                        xpreprocess=preprocess,
-                                        ypreprocess=get_contours_batch)
+                                        x_preprocess=preprocess,
+                                        y_preprocess=get_contours_batch)
     val_generator = ImageMaskIterator(args.images_dir, args.masks_dir,
                                       val_ids, args.batch_size,
                                       image_shape,
-                                      xpreprocess=preprocess,
-                                      ypreprocess=get_contours_batch)
+                                      x_preprocess=preprocess,
+                                      y_preprocess=get_contours_batch)
     return train_generator, val_generator
 
 

@@ -74,9 +74,9 @@ def predict_test(args):
     test_iterator = ImageMaskIterator(args.images_dir, None,
                                       test_ids,
                                       batch_size=args.batch_size,
-                                      target_shape=input_shape,
+                                      x_shape=input_shape,
                                       shuffle=False,
-                                      xpreprocess=preprocess)
+                                      x_preprocess=preprocess)
 
     queue_batches = Queue()
     writer_p = Process(target=predict_csv_writer,

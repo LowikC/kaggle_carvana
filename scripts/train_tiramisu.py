@@ -50,11 +50,11 @@ def get_data(args):
     train_generator = ImageMaskIterator(args.images_dir, args.masks_dir,
                                         train_ids, args.batch_size,
                                         image_shape,
-                                        xpreprocess=preprocess)
+                                        x_preprocess=preprocess)
     val_generator = ImageMaskIterator(args.images_dir, args.masks_dir,
                                       val_ids, args.batch_size,
                                       image_shape,
-                                      xpreprocess=preprocess)
+                                      x_preprocess=preprocess)
     return train_generator, val_generator
 
 
@@ -62,7 +62,8 @@ def train(args):
     train_generator, val_generator = get_data(args)
 
     input_shape = (args.image_height, args.image_width, 3)
-    tiramisu = DenseNetFCN(input_shape, 5, 12, 4, activation='sigmoid')
+    tiramisu = DenseNetFCN(input_shape, 5, 12, 4, activation='sigmoid',
+                           init_conv_filters=24)
 
     opt = Adam()
     tiramisu.compile(optimizer=opt, loss=dice_coef_loss,
