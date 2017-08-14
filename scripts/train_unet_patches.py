@@ -9,7 +9,7 @@ from keras.optimizers import Adam
 from keras.metrics import binary_accuracy
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from metrics import dice_coef_binary
-from losses import log_dice_coef_loss
+from losses import background_weighted_binary_crossentropy, wrapped_partial
 from augmentation import random_transformation
 from TensorBoardCallBack import TensorBoardCallBack
 
@@ -22,7 +22,7 @@ def get_callbacks(dst_dir):
     """
     # monitor = 'val_dice_coef_binary_contours'
     monitor = 'val_loss'
-    mode='min'
+    mode = 'min'
     ckpt_name = "weights.{epoch:02d}-{val_dice_coef_binary:.4f}-{" + monitor + ":.4f}.hdf5"
 
     return [
@@ -78,8 +78,13 @@ def train(args):
     unet = get_model(args.image_height, args.image_width, 3,
                      n_filters=[24, 48, 96, 192, 384])
 
+    weights = np.array([1, 1.54], dtype=np.float32)  # 60% of background
+    weights /= np.sum(weights)
+    weighted_bce_loss = wrapped_partial(background_weighted_binary_crossentropy,
+                                        weights=weights)
+
     opt = Adam()
-    unet.compile(optimizer=opt, loss=log_dice_coef_loss,
+    unet.compile(optimizer=opt, loss=weighted_bce_loss,
                  metrics=[binary_accuracy, dice_coef_binary])
 
     callbacks = get_callbacks(args.save_dir)
