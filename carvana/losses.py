@@ -11,7 +11,7 @@ def wrapped_partial(func, *args, **kwargs):
 
 
 def dice_coef_loss(y_true, y_pred):
-    return -dice_coef(y_true, y_pred, 1.0)
+    return 1.0 - dice_coef(y_true, y_pred, 1.0)
 
 
 def log_dice_coef_loss(y_true, y_pred):
