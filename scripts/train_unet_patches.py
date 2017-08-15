@@ -71,6 +71,7 @@ def get_data(args):
                                       x_preprocess=preprocess)
     return train_generator, val_generator
 
+
 def bce_dice_loss(y_true, y_pred, bce_loss, dice_loss, weights):
     return weights[0] * bce_loss(y_true, y_pred) + weights[1] * dice_loss(y_true, y_pred)
 
@@ -85,7 +86,8 @@ def train(args):
     weights /= np.sum(weights)
     weighted_bce_loss = wrapped_partial(background_weighted_binary_crossentropy,
                                         weights=weights)
-    bce_dice_loss_spec = wrapped_partial(bce_loss=weighted_bce_loss,
+    bce_dice_loss_spec = wrapped_partial(bce_dice_loss,
+                                         bce_loss=weighted_bce_loss,
                                          dice_loss=dice_coef_loss,
                                          weights=[0.5, 0.5])
 
