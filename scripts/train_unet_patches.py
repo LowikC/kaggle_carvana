@@ -9,7 +9,7 @@ from keras.optimizers import SGD
 from keras.metrics import binary_accuracy
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from metrics import dice_coef_binary
-from losses import background_weighted_binary_crossentropy, dice_coef_loss, wrapped_partial
+from losses import contours_weighted_binary_crossentropy, dice_coef_loss, wrapped_partial
 from augmentation import random_transformation
 from TensorBoardCallBack import TensorBoardCallBack
 
@@ -80,20 +80,21 @@ def train(args):
     train_generator, val_generator = get_data(args)
 
     unet = get_model(args.image_height, args.image_width, 3,
-                     n_filters=[24, 48, 96, 192, 384])
+                     n_filters=[16, 32, 64, 128, 256])
 
-    weights = np.array([1, 1.54], dtype=np.float32)  # 60% of background
-    weights /= np.sum(weights)
-    weighted_bce_loss = wrapped_partial(background_weighted_binary_crossentropy,
+    weights = np.array([0.41883297, 48.88380964, 0.63654285, 47.68583369],
+                       dtype=np.float32)
+    weighted_bce_loss = wrapped_partial(contours_weighted_binary_crossentropy,
                                         weights=weights)
     bce_dice_loss_spec = wrapped_partial(bce_dice_loss,
                                          bce_loss=weighted_bce_loss,
                                          dice_loss=dice_coef_loss,
                                          weights=[0.5, 0.5])
 
-    opt = SGD(lr=1e-4, momentum=0.5, nesterov=True)
+    opt = SGD(lr=1e-2, momentum=0.9, nesterov=True)
     unet.compile(optimizer=opt, loss=bce_dice_loss_spec,
-                 metrics=[binary_accuracy, dice_coef_binary, weighted_bce_loss, dice_coef_loss])
+                 metrics=[binary_accuracy, dice_coef_binary,
+                          weighted_bce_loss, dice_coef_loss])
 
     callbacks = get_callbacks(args.save_dir)
     _ = unet.fit_generator(train_generator, train_generator.steps_per_epoch,
