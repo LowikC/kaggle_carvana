@@ -5,7 +5,7 @@ import logging
 import numpy as np
 from ImageMaskIterator import ImageMaskIterator
 from unet import get_model, preprocess
-from keras.optimizers import Adam
+from keras.optimizers import SGD
 from keras.metrics import binary_accuracy
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from metrics import dice_coef_binary
@@ -91,7 +91,7 @@ def train(args):
                                          dice_loss=dice_coef_loss,
                                          weights=[0.5, 0.5])
 
-    opt = Adam()
+    opt = SGD(lr=1e-4, momentum=0.5, nesterov=True)
     unet.compile(optimizer=opt, loss=bce_dice_loss_spec,
                  metrics=[binary_accuracy, dice_coef_binary, weighted_bce_loss, dice_coef_loss])
 
