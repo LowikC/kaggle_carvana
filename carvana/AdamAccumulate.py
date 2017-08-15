@@ -12,7 +12,7 @@ class Adam_accumulate(Optimizer):
         lr: float >= 0. Learning rate.
         beta_1/beta_2: floats, 0 < beta < 1. Generally close to 1.
         epsilon: float >= 0. Fuzz factor.
-    
+
     # References
         - [Adam - A Method for Stochastic Optimization](http://arxiv.org/abs/1412.6980v8)
     """
@@ -31,7 +31,6 @@ class Adam_accumulate(Optimizer):
         self.updates = [(self.iterations, self.iterations + 1)]
 
         t = self.iterations + 1
-        print t.eval()
         lr_t = self.lr * K.sqrt(1. - K.pow(self.beta_2, t)) / (1. - K.pow(self.beta_1, t))
 
         ms = [K.variable(np.zeros(K.get_value(p).shape)) for p in params]
@@ -58,7 +57,6 @@ class Adam_accumulate(Optimizer):
                 c = constraints[p]
                 new_p = c(new_p)
             self.updates.append((p, new_p))
-        # print self.updates
         return self.updates
 
     def get_config(self):
