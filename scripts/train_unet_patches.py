@@ -82,7 +82,7 @@ def train(args):
     unet = get_model(args.image_height, args.image_width, 3,
                      n_filters=[16, 32, 64, 128, 256])
 
-    weights = np.array([0.41883297, 48.88380964, 0.63654285, 47.68583369],
+    weights = np.array([ 0.00214511,  0.25036517,  0.00326014,  0.24422957],
                        dtype=np.float32)
     weighted_bce_loss = wrapped_partial(contours_weighted_binary_crossentropy,
                                         weights=weights)
