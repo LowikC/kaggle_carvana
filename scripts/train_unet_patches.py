@@ -5,11 +5,11 @@ import logging
 import numpy as np
 from ImageMaskIterator import ImageMaskIterator
 from unet import get_model, preprocess
-from keras.optimizers import Adam
+from AdamAccumulate import Adam_accumulate
 from keras.metrics import binary_accuracy
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from metrics import dice_coef_binary
-from losses import background_weighted_binary_crossentropy, wrapped_partial
+from losses import background_weighted_binary_crossentropy, dice_coef_loss, wrapped_partial
 from augmentation import random_transformation
 from TensorBoardCallBack import TensorBoardCallBack
 
@@ -71,6 +71,9 @@ def get_data(args):
                                       x_preprocess=preprocess)
     return train_generator, val_generator
 
+def bce_dice_loss(y_true, y_pred, bce_loss, dice_loss, weights):
+    return weights[0] * bce_loss(y_true, y_pred) + weights[1] * dice_loss(y_true, y_pred)
+
 
 def train(args):
     train_generator, val_generator = get_data(args)
@@ -82,9 +85,12 @@ def train(args):
     weights /= np.sum(weights)
     weighted_bce_loss = wrapped_partial(background_weighted_binary_crossentropy,
                                         weights=weights)
+    bce_dice_loss_spec = wrapped_partial(bce_loss=weighted_bce_loss,
+                                         dice_loss=dice_coef_loss,
+                                         weights=[0.5, 0.5])
 
-    opt = Adam()
-    unet.compile(optimizer=opt, loss=weighted_bce_loss,
+    opt = Adam_accumulate(accum_iters=4)
+    unet.compile(optimizer=opt, loss=bce_dice_loss_spec,
                  metrics=[binary_accuracy, dice_coef_binary])
 
     callbacks = get_callbacks(args.save_dir)
