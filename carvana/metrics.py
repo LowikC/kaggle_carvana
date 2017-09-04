@@ -1,33 +1,39 @@
 from keras import backend as K
 
 
-def dice_coef(y_true, y_pred, smooth):
-    y_true_f = K.flatten(y_true)
+def weighted_dice_coef(y_true, y_pred, smooth, use_weights=True):
+    """
+    Compute differentiable (weighted) dice coef.
+    :param y_true: Groundtruth mask + weight per pixel (optional)
+    :param y_pred: Predicted mask
+    :param smooth: Smooth factor
+    :param use_weights: Use the weights or not.
+    :return: weighted dice coef.
+    """
+    y_true_weights = K.ones_like(y_true)
+    y_true_mask = y_true[..., 0:1]
+    if use_weights:
+        y_true_weights = y_true[..., 1:2]
+    y_true_mask_f = K.flatten(y_true_mask)
+    y_true_weights_f = K.flatten(y_true_weights)
     y_pred_f = K.flatten(y_pred)
-    intersection = K.sum(y_true_f * y_pred_f)
-    return (2. * intersection + smooth) /\
-           (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
+    intersection = K.sum(y_true_mask * y_pred_f)
+    return (2. * y_true_weights_f * intersection + smooth) / \
+           (K.sum(y_true_weights_f * y_true_mask_f) +
+            K.sum(y_true_weights_f * y_pred_f) + smooth)
 
 
 def dice_coef_binary(y_true, y_pred):
+    """
+    Compute the dice coef (on binary prediction)
+    """
     y_pred_binary = K.round(y_pred)
-    return dice_coef(y_true, y_pred_binary, K.epsilon())
+    return weighted_dice_coef(y_true, y_pred_binary, K.epsilon(), use_weights=False)
 
 
-def dice_coef_binary_contours(y_true, y_pred):
-    y_true_binary = K.cast(y_true > 1, K.floatx())
-    y_pred_binary = K.round(y_pred)
-    return dice_coef(y_true_binary, y_pred_binary, K.epsilon())
-
-
-def background_weighted_binary_accuracy(y_true, y_pred, weights):
-    weight_per_pixel = y_true * weights[1] + (1 - y_true) * weights[0]
-    accuracy_per_pixel = K.equal(y_true, K.round(y_pred))
-    accuracy_per_pixel = K.cast(accuracy_per_pixel, K.floatx())
-    return K.mean(accuracy_per_pixel * weight_per_pixel, axis=-1)
-
-
-def pixel_weighted_binary_accuracy(y_true, y_pred):
-    y_true_mask = y_true[..., 0:1]
+def binary_accuracy(y_true, y_pred):
+    if int(y_true.shape[-1]) == 2:
+        y_true_mask = y_true[..., 0:1]
+    else:
+        y_true_mask = y_true
     return K.mean(K.equal(y_true_mask, K.round(y_pred)), axis=-1)
-

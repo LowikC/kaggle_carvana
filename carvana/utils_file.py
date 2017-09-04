@@ -22,3 +22,18 @@ def num_lines(filename):
     """
     with open(filename, "r") as f:
         return sum(1 for _ in f)
+
+
+def get_car_id_rot(filename):
+    """
+    Return the car id and the rotation of an image.
+    :param filename: Path to the image.
+    :return: car_id (str), rotation (int)
+    """
+    basename = os.path.basename(filename)
+    basename, _ = os.path.splitext(basename)
+    if "mask" in basename:
+        car_id, rot, _ = basename.split("_")
+    else:
+        car_id, rot = basename.split("_")
+    return car_id, int(rot)

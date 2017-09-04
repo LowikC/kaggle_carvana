@@ -76,6 +76,7 @@ class ImageMaskIterator(Iterator):
             os.makedirs(self.debug_dir, exist_ok=True)
         if seed is not None:
             np.random.seed(seed)
+        print("hoho")
         super(ImageMaskIterator, self).__init__(self.n_indices // n_patches_per_image,
                                                 batch_size // n_patches_per_image,
                                                 shuffle, seed)
@@ -159,6 +160,7 @@ class ImageMaskIterator(Iterator):
         """
         # Keeps under lock only the mechanism which advances
         # the indexing of each batch.
+        print("haha")
         with self.lock:
             index_array, current_index, current_batch_size = next(self.index_generator)
 
